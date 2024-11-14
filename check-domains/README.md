@@ -14,8 +14,9 @@ Network connectivity and permissions to access the specified domains
 Administrator privileges may be required for full functionality
 
 **Usage**
-1. Open PowerShell with necessary permissions.
-2. Run the script:
+1. Upload the script to the Windows VM
+2. Open PowerShell with necessary permissions.
+3. Run the script:
 
 ```
 .\check_domains_win.ps1
