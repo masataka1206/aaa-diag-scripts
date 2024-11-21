@@ -1,81 +1,123 @@
-# Azure Quota Checker Script
+## Azure Quota Checker Script
 
-## Overview
-This repository contains a PowerShell script designed to check the available quotas for specific Azure VM instance types in a given region. The script interacts with Azure CLI to provide a summary of usage and limits for instance types such as `HB`, and `HC` series.
+### Table of Contents
+- Prerequisites
+- Usage Instructions
+- What the Script Does
+- Troubleshooting
+- Notes
 
-## Prerequisites
+### Prerequisites
+Before running this script, ensure that the following conditions are met:
 
-Before running the script, ensure the following prerequisites are met:
+Azure CLI is available. Azure Cloud Shell already has Azure CLI installed.
 
-- **Azure CLI** is installed on your local machine. You can install it from [Azure CLI Installation Guide](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli).
-- You have **logged in to Azure CLI** using the command:
-  ```powershell
-  az login
-  ```
-  This script requires you to be logged in to Azure to access subscription information.
+Logged into Azure. Azure Cloud Shell is automatically logged in.
 
-## Script Description
-The PowerShell script performs the following operations:
+### Usage Instructions
+This script is intended to be uploaded and executed in Azure Cloud Shell. Please follow these steps:
 
-1. **Error Handling**: If any command fails, the script exits with an error message.
-2. **Azure Region Input**: Prompts the user to specify the Azure region.
-3. **Login Verification**: Checks if the Azure CLI is logged in, prompting the user if not.
-4. **Quota Filtering**: Retrieves and displays VM usage filtered by specific quota names (`Standard`, `HB`, `HC`).
+1. Obtain the Script
 
-### PowerShell Script
+- Upload the script file from your local machine to Azure Cloud Shell.
+    - Click the "Upload/Download" button at the top of the Azure Cloud Shell window and select "Upload".
+    - Choose the file check_azure_quota.ps1 to upload.
+
+2. Run the Script
+
+- In Azure Cloud Shell, execute the following command:
 
 ```powershell
-# Define a function to handle errors
+./check_quota.ps1
+```
+
+3. Enter the Azure Region
+
+- When prompted, enter the Azure region you want to check (e.g., japaneast).
+- You can check the region names using the following command:
+
+```powershell
+az account list-locations -o table
+```
+
+Refer to the Name column.
+
+```java
+DisplayName               Name                 RegionalDisplayName
+------------------------  -------------------  -------------------------------------
+East US                   eastus               (US) East US
+Japan East                japaneast            (Asia Pacific) Japan East
+West Europe               westeurope           (Europe) West Europe
+```
+
+### What the Script Does
+This PowerShell script checks the available quotas for specific Azure VM instance types in a specified region.
+
+**Main Features:**
+
+1. Error Handling
+    - If any command fails, the script displays an error message and exits.
+2. Azure Region Input
+    - Prompts the user to input the Azure region they wish to check.
+3. Login Verification
+    - Checks if Azure CLI is logged in. Azure Cloud Shell is already logged in, but if not, it prompts the user to log in.
+4. Quota Filtering
+    - Retrieves and displays VM usage filtered by specific quota names (Standard, HB, HC, etc.).
+
+#### PowerShell Script
+
+```powershell
+# Define a function for error handling
 function Stop-Error {
     Write-Host "An error occurred. Exiting."
     exit 1
 }
 
-# Ensure script exits on any command failure
+# Set the script to stop on any error
 $ErrorActionPreference = "Stop"
 
 # Prompt for Azure region input
-$REGION = Read-Host "Enter Azure region"
+$REGION = Read-Host "Please enter the Azure region"
 
 # Verify that Azure CLI is logged in
 try {
     az account show > $null
 } catch {
-    Write-Host "Please log in to Azure using 'Connect-AzAccount'"
+    Write-Host "Please log in to Azure using 'Connect-AzAccount'."
     exit 1
 }
 
-# Define the filter for quota names
+# Define filters for quota names
 $requiredFilter = "Standard"
 $additionalFilters = @("HB", "HC", "Esv", "Fsv", "Dsv3", "Ebds")
 
-# Fetch and display VM usage filtered by relevant quota names
+# Retrieve and filter VM usage data
 try {
     # Get usage information from Azure CLI
     $usagesJson = az vm list-usage --location $REGION
     if (-not $usagesJson) {
-        Write-Host "No data returned from Azure CLI."
+        Write-Host "No data retrieved from Azure CLI."
         exit 1
     }
 
     # Convert JSON to PowerShell objects
     $usages = $usagesJson | ConvertFrom-Json
     if (-not $usages) {
-        Write-Host "Failed to convert usage data to PowerShell objects."
+        Write-Host "Failed to convert usage data."
         exit 1
     }
 
-    # First filter: Apply the "Standard" filter
+    # Apply the "Standard" filter
     $filteredUsages = $usages | Where-Object {
         $_.name.value -like "*$requiredFilter*"
     }
 
     if (-not $filteredUsages) {
-        Write-Host "No matching usage data found for the 'Standard' filter."
+        Write-Host "No data found matching the 'Standard' filter."
         exit 1
     }
 
-    # Further filter the results to ensure they also match any of the additional filters
+    # Apply additional filters
     $furtherFilteredUsages = $filteredUsages | Where-Object {
         $match = $false
         foreach ($filter in $additionalFilters) {
@@ -88,75 +130,34 @@ try {
     }
 
     if (-not $furtherFilteredUsages) {
-        Write-Host "No matching usage data found after applying additional filters."
+        Write-Host "No data found after applying additional filters."
         exit 1
     }
 
-    # Display further filtered usage data
+    # Display the filtered usage data
     Write-Host "Filtered usage data:" -ForegroundColor Green
-    $furtherFilteredUsages | Select-Object @{Name="QuotaName";Expression={$_.name.value}}, CurrentValue, Limit | Format-Table
+    $furtherFilteredUsages | Select-Object @{Name="Quota Name";Expression={$_.name.value}}, CurrentValue, Limit | Format-Table
 } catch {
     Stop-Error
 }
 ```
 
-## Usage
+### Troubleshooting
+- **If an error message appears**
+    - Ensure that the region name you entered is correct. You can check the region names using az account list-locations -o table.
+    - Verify that you have appropriate permissions to access Azure CLI.
 
-1. **Clone the Repository**: Clone this repository to your local machine:
-   ```sh
-   git clone <repository-url>
-   ```
+- **If quota information cannot be retrieved**
+    - Check whether the specified region has the relevant quotas available.
+    - Adjust the filter conditions in the script to obtain the necessary quota information.
 
-2. **Run the Script**: Open a PowerShell terminal and navigate to the script's directory. Run the script using:
-   ```powershell
-   .\check_azure_quota.ps1
-   ```
+### Notes
+- **Using Azure Cloud Shell**
+    - Azure Cloud Shell is a browser-based shell environment with PowerShell and Azure CLI pre-installed.
+    - Use the "Upload/Download" feature in Cloud Shell to upload files.
 
-3. **Enter Region**: When prompted, enter the Azure region you want to check (e.g., `japaneast`).
+- **Customizing the Script**
+    - You can modify $requiredFilter and $additionalFilters within the script to change the types of quotas being checked.
 
-You can check your region name using the following command. 
-
-```powershell
-az account list-locations -o table
-```
-
-Check the "name" column.
-
-```
-DisplayName               Name                 RegionalDisplayName
-------------------------  -------------------  -------------------------------------
-East US                   eastus               (US) East US
-South Central US          southcentralus       (US) South Central US
-West US 2                 westus2              (US) West US 2
-West US 3                 westus3              (US) West US 3
-Australia East            australiaeast        (Asia Pacific) Australia East
-Southeast Asia            southeastasia        (Asia Pacific) Southeast Asia
-North Europe              northeurope          (Europe) North Europe
-```
-
-
-## Example Output
-
-The script will output the **Service Quota Name**, **Current Value**, and **Limit** for each relevant quota in the specified region in a table format.
-
-Example:
-
-```
-Service Quota Name          Current Value    Limit
--------------------------  --------------   -----
-Standard DSv3 Family       10               20
-HBv2 Series                5                10
-```
-
-## Error Handling
-The script is designed to exit with an appropriate message if:
-- The Azure CLI is not installed.
-- The user is not logged in.
-- Any command fails during execution.
-
-## Contributions
-Feel free to fork this repository and create a pull request if you'd like to contribute or improve the script.
-
-## License
-This project is licensed under the MIT License.
-
+- **Permissions and Security**
+    - Running the script requires appropriate access rights to your Azure subscription.
