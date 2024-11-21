@@ -24,12 +24,11 @@ $fileName = "lmutil.exe"
 $licfileName = "ansyslmd.ini"
 
 # Specify the file name to search for
-$searchPattern = "*\$($app)\licensingclient\winx64\*$filename"
-$licsearchPattern = "*\Shared Files\licensing\*$licfilename"
+$searchPattern = "$startDirectory*\$($app)\licensingclient\winx64\$fileName"
+$licsearchPattern = "$startDirectory*\Shared Files\licensing\$licfileName"
 
 # Search for the path
-$foundFiles = Get-ChildItem -Path $startDirectory -Recurse -File -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -like $searchPattern }
+$foundFiles = Get-ChildItem -Path $searchPattern -File -ErrorAction SilentlyContinue
 
 if ($foundFiles) {
     # Set the full path of the first found file to the environment variable
@@ -42,8 +41,7 @@ if ($foundFiles) {
 }
 
 # Search for the path
-$licfoundFiles = Get-ChildItem -Path $startDirectory -Recurse -File -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -like $licsearchPattern }
+$licFoundFiles = Get-ChildItem -Path $licsearchPattern -File -ErrorAction SilentlyContinue
 
 if ($licfoundFiles) {
     # Set the full path of the first found file to the environment variable
