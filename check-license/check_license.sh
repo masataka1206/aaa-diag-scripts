@@ -36,7 +36,6 @@ read -p "Choose [1 or 2]: " storageChoice
 #####################################
 # 2) Parameter settings
 #####################################
-startDirectory="/mnt"
 fileName="lmutil"
 licFileName="ansyslmd.ini"
 
